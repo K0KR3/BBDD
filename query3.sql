@@ -1,11 +1,7 @@
-SELECT 
-    e.employeenumber,
-    e.lastname
+SELECT e.employeenumber, e.lastname
 FROM employees e
+JOIN employees jefe
+    ON e.reportsto = jefe.employeenumber
 JOIN employees director
-    ON e.reportsto = director.employeenumber
-WHERE director.employeenumber = (
-    SELECT employeenumber
-    FROM employees
-    WHERE reportsto IS NULL
-)
+    ON jefe.reportsto = director.employeenumber
+WHERE director.reportsto IS NULL;

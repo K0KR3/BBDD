@@ -1,18 +1,15 @@
-SELECT
-    o.country,
-    COUNT(o.officecode) as no_ventas
+SELECT o.country, COUNT(*) AS no_ventas
 FROM offices o
-WHERE o.officecode NOT IN(
-    SELECT DISTINCT e.officecode
-    FROM employees e 
-    JOIN customers c
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM employees e
+    JOIN customers c 
         ON c.salesrepemployeenumber = e.employeenumber
-    JOIN orders o
-        ON o.customernumber = c.customernumber 
-
-
+    JOIN orders od
+        ON od.customernumber = c.customernumber
+    WHERE e.officecode = o.officecode
+        AND od.orderdate >= '2003-01-01'
+        AND od.orderdate <  '2004-01-01'
 )
-GROUP BY
-    o.country
-ORDER BY 
-    no_ventas DESC;
+GROUP BY o.country
+ORDER BY no_ventas DESC;
