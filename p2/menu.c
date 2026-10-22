@@ -1,36 +1,24 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <sql.h>
+#include <sqlext.h>
 
-/* #include "menu_template.h" */
-/* #ifndef A2BIS_MENU_TEMPLATE_H */
-/* #define A2BIS_MENU_TEMPLATE_H */
-
-/* Prototypes:
- * Since in this example this functions are not used outside menu_template
- * it does not make sense to create an include file and export them
- * BUT in your code it will make sense to break this file in many files
- * and create several include files with the prototypes
- *
- * A static function in C is a function that has a scope that is limited
- * to its object file. This means that the static function is only
- * visible in its object file. Therefore,
- * you need to remove the static keyword from the declaration
- * if the function is declared in a file and used in another
- * */
+#include "odbc.h"
+#include "products.h"
+#include "orders.h"
+#include "customers.h"
 
 static int ShowMainMenu();
-static void ShowRhymeMenu();
-static int ShowRhymeSubMenu();
-static void ShowFairyMenu();
-static int ShowFairySubMenu();
+static void ShowOrdersMenu();
+static int ShowOrdersSubMenu();
+static void ShowCustomersMenu();
+static int ShowCustomersSubMenu();
 static void PrintZub();
 static void PrintBigFatGit();
 static void PrintAliens();
 static void PrintMary();
 static void PrintJack();
 static void PrintLittleBoPeep();
-
-/* #endif //A2BIS_MENU_TEMPLATE_H */
 
 /**
  * @file menu_template.c
@@ -101,12 +89,10 @@ int ShowMainMenu() {
                      as 'qwerty' */
 
     do {
-        printf("This is a nursery rhyme and fairy stories program\n");
-        printf("You can choose to display a number of different nursery rhymes and fairy stories\n\n");
-
-        printf(" (1) Nursery rhymes\n"
-               " (2) Fairy stories\n"
-               " (3) Quit\n\n"
+        printf(" 1. Products\n"
+               " 2. Orders\n"
+               " 3. Customers\n"
+               " 4. Exit\n\n"
                "Enter a number that corresponds to your choice > ");
         if (!fgets(buf, 16, stdin))
             /* reading input failed, give up: */
@@ -116,228 +102,10 @@ int ShowMainMenu() {
             nSelected = atoi(buf);
         printf("\n");
 
-        if ((nSelected < 1) || (nSelected > 3)) {
-            printf("You have entered an invalid choice. Please try again\n\n\n");
-        }
-    } while ((nSelected < 1) || (nSelected > 3));
-
-    return nSelected;
-}
-
-/**
- * @brief Shows and processes the rhyme menu.
- *
- * This function implements a loop that prints the rhyme
- * menu, analyze the user selection and prints
- * the selected rhyme
- * @return void
- * @author rmarabini
- */
-
-void ShowRhymeMenu() {
-    int nChoice = 0;
-    do {
-        nChoice = ShowRhymeSubMenu();
-        switch (nChoice) {
-
-            case 1: {
-                PrintMary();
-            }
-                break;
-
-            case 2: {
-                PrintJack();
-            }
-                break;
-
-            case 3: {
-                PrintLittleBoPeep();
-            }
-                break;
-
-            case 4: {
-                printf("Bye Bye\n\n");
-            }
-                break;
-        }
-    } while (nChoice != 4);
-
-}
-
-/**
- * @brief prints rhyme menu and allows to select an option.
- *
- * @return selected option
- * @author rmarabini
- */
-
- int ShowRhymeSubMenu() {
-    int nSelected = 0;
-    char buf[16];
-
-    do {
-
-        printf(" (1) Mary had a little lamb\n"
-               " (2) Jack and Jill\n"
-               " (3) Little Bo Peep\n"
-               " (4) Quit\n\n");
-
-        printf("Enter a number that corresponds to your choice > ");
-        if (!fgets(buf, 16, stdin))
-            /* reading input failed, give up: */
-            nSelected =0;
-        else
-            /* have some input, convert it to integer: */
-            nSelected = atoi(buf);
-        printf("\n");
-
-
         if ((nSelected < 1) || (nSelected > 4)) {
             printf("You have entered an invalid choice. Please try again\n\n\n");
         }
     } while ((nSelected < 1) || (nSelected > 4));
 
     return nSelected;
-}
-
-/**
- * @brief Shows and processes the fairy menu.
- *
- * This function implements a loop that prints the fairy
- * menu, analyze the user selection and prints
- * the selected fairy tail
- *
- * @return selected option
- * @author rmarabini
- */
-
-void ShowFairyMenu() {
-    int nChoice = 0;
-
-    do {
-        nChoice = ShowFairySubMenu();
-        switch (nChoice) {
-            case 1: {
-                PrintZub();
-            }
-                break;
-
-            case 2: {
-                PrintBigFatGit();
-            }
-                break;
-
-            case 3: {
-                PrintAliens();
-            }
-                break;
-
-            case 4: {
-                printf("Bye Bye\n\n");
-            }
-                break;
-        }
-    } while (nChoice != 4);
-
-}
-
-/**
- * @brief prints the fairy menu and allows to select an option.
- *
- * @return selected option
- * @author rmarabini
- */
- int ShowFairySubMenu() {
-    int nSelected = 0;
-    char buf[16];
-
-    do {
-
-        printf(" (1) The zub zubs\n"
-               " (2) The BFG\n"
-               " (3) PrintAliens\n"
-               " (4) Quit\n\n");
-
-        printf("Enter a number that corresponds to your choice > ");
-        if (!fgets(buf, 16, stdin))
-            /* reading input failed, give up: */
-            nSelected =0;
-        else
-            /* have some input, convert it to integer: */
-            nSelected = atoi(buf);
-        printf("\n");
-
-        if ((nSelected < 1) || (nSelected > 4)) {
-            printf("You have entered an invalid choice. Please try again\n\n\n");
-        }
-    } while ((nSelected < 1) || (nSelected > 4));
-
-    return nSelected;
-}
-
-/**
- * @brief prints Rhyme Mary
- *
- * @return void
- * @author rmarabini
- *
- */
- void PrintMary() {
-    printf("Mary had a little lamb\n fleese white as snow\n\n\n");
-}
-
-/**
- * @brief prints Rhyme Jack
- *
- * @return void
- * @author rmarabini
- *
- */
-void PrintJack() {
-    printf("Jack and jill went up the hill to fetch water\nThen they fell down\n\n\n");
-}
-
-/**
- * @brief prints Rhyme LittleBoPee
- *
- * @return void
- * @author rmarabini
- *
- */
-void PrintLittleBoPeep() {
-    printf("Little bo peep had sheep\nthen they came home\n\n\n");
-}
-
-/**
- * @brief prints fairy tail LittleBoPee
- *
- * @return void
- * @author rmarabini
- *
- */
- void PrintZub() {
-    printf("zub zub zub zub zub zub zub zub\n\n\n");
-}
-
-/**
- * @brief prints fairy tail LittleBoPee
- *
- * @return void
- * @author rmarabini
- *
- */
-void PrintBigFatGit() {
-    printf("im big and fat and a git\n\n\n");
-}
-
-/**
- * @brief prints fairy tail LittleBoPee
- *
- * @return void
- * @author rmarabini
- *
- */
-
-void PrintAliens() {
-    printf("take us to your leader\n\n\n");
 }
