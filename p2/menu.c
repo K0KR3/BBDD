@@ -2,91 +2,22 @@
 #include <stdlib.h>
 #include <sql.h>
 #include <sqlext.h>
-
 #include "odbc.h"
-#include "products.h"
-#include "orders.h"
-#include "customers.h"
 
-static int ShowMainMenu();
-static void ShowOrdersMenu();
-static int ShowOrdersSubMenu();
-static void ShowCustomersMenu();
-static int ShowCustomersSubMenu();
-static void PrintZub();
-static void PrintBigFatGit();
-static void PrintAliens();
-static void PrintMary();
-static void PrintJack();
-static void PrintLittleBoPeep();
+void product_stock(SQLHDBC dbc);
+void product_find(SQLHDBC dbc);
 
-/**
- * @file menu_template.c
- * @author rmarabini
- * @date 15 April 2020
- * @brief File containing an example of a menu system with submenus
- *
- * The following program allows a user to select a nursery rhyme
- * or a fairy tail from a menu. The menu has two levels, the top
- * one allows to select between fairy tails or nursery rhymes. The
- * second level (sub-menus) allow to select either a particular
- * rhyme or tail.
- *
- * @see https://bytes.com/topic/c/answers/567136-creating-menus-sub-menus
- */
+void order_open(SQLHDBC dbc);
+void order_range(SQLHDBC dbc);
+void order_detail(SQLHDBC dbc);
 
+void customer_find(SQLHDBC dbc);
+void customer_list_products(SQLHDBC dbc);
+void customer_balance(SQLHDBC dbc);
 
-/**
- * @brief Entry point, shows and process main menu.
- *
- * This function implements a loop that prints the main
- * menu, analyze the user selection and calls the
- * corresponding submenu
- *
- * @return 0 if no error
- * @author rmarabini
- */
-int main(void) {
-    int nChoice = 0;
-
-    do {
-        nChoice = ShowMainMenu();
-        switch (nChoice) {
-            case 1: {
-                ShowRhymeMenu();
-            }
-                break;
-
-            case 2: {
-                ShowFairyMenu();
-            }
-                break;
-
-            case 3: {
-                printf("Bye Bye\n\n");
-            }
-                break;
-        }
-    } while (nChoice != 3);
-    return 0;
-}
-
-
-/**
- * @brief prints main menu and allows to select an option.
- *
- *
- * @return selected entry in the menu
- * @author rmarabini
- */
-
-int ShowMainMenu() {
+int ShowMainMenu(void) {
     int nSelected = 0;
-    char buf[16]; /* buffer for reading user input
-                     in theory we only need 1 char
-                     but a large buffer will handle
-                     more gracefully wrong inputs
-                     as 'qwerty' */
+    char buf[16];
 
     do {
         printf(" 1. Products\n"
@@ -95,10 +26,8 @@ int ShowMainMenu() {
                " 4. Exit\n\n"
                "Enter a number that corresponds to your choice > ");
         if (!fgets(buf, 16, stdin))
-            /* reading input failed, give up: */
-            nSelected =0;
+            nSelected = 0;
         else
-            /* have some input, convert it to integer: */
             nSelected = atoi(buf);
         printf("\n");
 
@@ -108,4 +37,135 @@ int ShowMainMenu() {
     } while ((nSelected < 1) || (nSelected > 4));
 
     return nSelected;
+}
+
+void ShowProductsMenu(SQLHDBC dbc) {
+    int nSelected = 0;
+    char buf[16];
+
+    do {
+        printf(" 1. Stock\n"
+               " 2. Find\n"
+               " 3. Back\n\n"
+               "Enter a number that corresponds to your choice > ");
+        if (!fgets(buf, 16, stdin))
+            nSelected = 0;
+        else
+            nSelected = atoi(buf);
+        printf("\n");
+
+        switch (nSelected) {
+            case 1:
+                product_stock(dbc);
+                break;
+            case 2:
+                product_find(dbc);
+                break;
+            case 3:
+                break;
+            default:
+                printf("You have entered an invalid choice. Please try again\n\n\n");
+                break;
+        }
+    } while (nSelected != 3);
+}
+
+void ShowOrdersMenu(SQLHDBC dbc) {
+    int nSelected = 0;
+    char buf[16];
+
+    do {
+        printf(" 1. Open\n"
+               " 2. Range\n"
+               " 3. Detail\n"
+               " 4. Back\n\n"
+               "Enter a number that corresponds to your choice > ");
+        if (!fgets(buf, 16, stdin))
+            nSelected = 0;
+        else
+            nSelected = atoi(buf);
+        printf("\n");
+
+        switch (nSelected) {
+            case 1:
+                order_open(dbc);
+                break;
+            case 2:
+                order_range(dbc);
+                break;
+            case 3:
+                order_detail(dbc);
+                break;
+            case 4:
+                break;
+            default:
+                printf("You have entered an invalid choice. Please try again\n\n\n");
+                break;
+        }
+    } while (nSelected != 4);
+}
+
+void ShowCustomersMenu(SQLHDBC dbc) {
+    int nSelected = 0;
+    char buf[16];
+
+    do {
+        printf(" 1. Find\n"
+               " 2. List Products\n"
+               " 3. Balance\n"
+               " 4. Back\n\n"
+               "Enter a number that corresponds to your choice > ");
+        if (!fgets(buf, 16, stdin))
+            nSelected = 0;
+        else
+            nSelected = atoi(buf);
+        printf("\n");
+
+        switch (nSelected) {
+            case 1:
+                customer_find(dbc);
+                break;
+            case 2:
+                customer_list_products(dbc);
+                break;
+            case 3:
+                customer_balance(dbc);
+                break;
+            case 4:
+                break;
+            default:
+                printf("You have entered an invalid choice. Please try again\n\n\n");
+                break;
+        }
+    } while (nSelected != 4);
+}
+
+int main(void) {
+    SQLHENV env;
+    SQLHDBC dbc;
+    int nChoice = 0;
+
+    if (!odbc_connect(&env, &dbc)) {
+        return EXIT_FAILURE;
+    }
+
+    do {
+        nChoice = ShowMainMenu();
+        switch (nChoice) {
+            case 1:
+                ShowProductsMenu(dbc);
+                break;
+            case 2:
+                ShowOrdersMenu(dbc);
+                break;
+            case 3:
+                ShowCustomersMenu(dbc);
+                break;
+            case 4:
+                break;
+        }
+    } while (nChoice != 4);
+
+    odbc_disconnect(env, dbc);
+    return EXIT_SUCCESS;
 }
