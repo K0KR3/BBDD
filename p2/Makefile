@@ -6,7 +6,7 @@ LDLIBS = -lodbc
 HEADERS = odbc.h
 
 EXE = menu
-OBJ = $(EXE).o
+OBJ = $(EXE).o odbc.o
 #all : $(EXE)
 
 

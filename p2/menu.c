@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sql.h>
+#include <string.h>
 #include <sqlext.h>
 #include "odbc.h"
 
@@ -139,6 +140,77 @@ void ShowCustomersMenu(SQLHDBC dbc) {
         }
     } while (nSelected != 4);
 }
+
+void product_stock(SQLHDBC dbc) {
+    SQLHSTMT stmt = NULL;
+    SQLRETURN ret;
+    SQLCHAR productcode[16];
+    SQLINTEGER quantityinstock;
+    SQLLEN indicator;
+
+    printf("Enter product code > ");
+    if (fgets((char*)productcode, sizeof(productcode), stdin)) {
+        size_t len = strlen((char*)productcode);
+        if (len > 0 && productcode[len-1] == '\n') {
+            productcode[len-1] = '\0';
+        }
+    } else {
+        return;
+    }
+
+    ret = SQLAllocHandle(SQL_HANDLE_STMT, dbc, &stmt);
+    if (!SQL_SUCCEEDED(ret)) {
+        odbc_extract_error("SQLAllocHandle", dbc, SQL_HANDLE_DBC);
+        return;
+    }
+
+    ret = SQLPrepare(stmt, (SQLCHAR*)"SELECT quantityinstock FROM products WHERE productcode = ?", SQL_NTS);
+    if (!SQL_SUCCEEDED(ret)) {
+        odbc_extract_error("SQLPrepare", stmt, SQL_HANDLE_STMT);
+        SQLFreeHandle(SQL_HANDLE_STMT, stmt);
+        return;
+    }
+
+    ret = SQLBindParameter(stmt, 1, SQL_PARAM_INPUT, SQL_C_CHAR, SQL_VARCHAR, 15, 0, productcode, 0, NULL);
+    if (!SQL_SUCCEEDED(ret)) {
+        odbc_extract_error("SQLBindParameter", stmt, SQL_HANDLE_STMT);
+        SQLFreeHandle(SQL_HANDLE_STMT, stmt);
+        return;
+    }
+
+    ret = SQLExecute(stmt);
+    if (!SQL_SUCCEEDED(ret)) {
+        odbc_extract_error("SQLExecute", stmt, SQL_HANDLE_STMT);
+        SQLFreeHandle(SQL_HANDLE_STMT, stmt);
+        return;
+    }
+
+    ret = SQLBindCol(stmt, 1, SQL_C_SLONG, &quantityinstock, sizeof(SQLINTEGER), &indicator);
+    if (!SQL_SUCCEEDED(ret)) {
+        odbc_extract_error("SQLBindCol", stmt, SQL_HANDLE_STMT);
+        SQLFreeHandle(SQL_HANDLE_STMT, stmt);
+        return;
+    }
+
+    ret = SQLFetch(stmt);
+    if (SQL_SUCCEEDED(ret)) {
+        printf("%d -> stock for product with id = %s\n", quantityinstock, productcode);
+    } else if (ret == SQL_NO_DATA) {
+        printf("Product not found.\n");
+    } else {
+        odbc_extract_error("SQLFetch", stmt, SQL_HANDLE_STMT);
+    }
+
+    SQLFreeHandle(SQL_HANDLE_STMT, stmt);
+}
+
+void product_find(SQLHDBC dbc) {}
+void order_open(SQLHDBC dbc) {}
+void order_range(SQLHDBC dbc) {}
+void order_detail(SQLHDBC dbc) {}
+void customer_find(SQLHDBC dbc) {}
+void customer_list_products(SQLHDBC dbc) {}
+void customer_balance(SQLHDBC dbc) {}
 
 int main(void) {
     SQLHENV env;
