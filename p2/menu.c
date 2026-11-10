@@ -217,7 +217,7 @@ int main(void) {
     SQLHDBC dbc;
     int nChoice = 0;
 
-    if (!odbc_connect(&env, &dbc)) {
+    if (!SQL_SUCCEEDED(odbc_connect(&env, &dbc))) {
         return EXIT_FAILURE;
     }
 
