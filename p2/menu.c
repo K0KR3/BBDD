@@ -204,10 +204,231 @@ void product_stock(SQLHDBC dbc) {
     SQLFreeHandle(SQL_HANDLE_STMT, stmt);
 }
 
-void product_find(SQLHDBC dbc) {}
-void order_open(SQLHDBC dbc) {}
-void order_range(SQLHDBC dbc) {}
-void order_detail(SQLHDBC dbc) {}
+void product_find(SQLHDBC dbc) {
+    SQLHSTMT stmt = NULL;
+    SQLRETURN ret;
+    SQLCHAR search_input[64];
+    SQLCHAR like_pattern[70]; 
+    
+    SQLCHAR productcode[50];
+    SQLCHAR productname[100];
+    SQLLEN ind_code, ind_name;
+
+    printf("Enter product name > ");
+    if (fgets((char*)search_input, sizeof(search_input), stdin)) {
+        size_t len = strlen((char*)search_input);
+        if (len > 0 && search_input[len-1] == '\n') {
+            search_input[len-1] = '\0';
+        }
+    } else {
+        return;
+    }
+
+    snprintf((char*)like_pattern, sizeof(like_pattern), "%%%s%%", search_input);
+
+    ret = SQLAllocHandle(SQL_HANDLE_STMT, dbc, &stmt);
+    if (!SQL_SUCCEEDED(ret)) {
+        odbc_extract_error("SQLAllocHandle", dbc, SQL_HANDLE_DBC);
+        return;
+    }
+
+    ret = SQLPrepare(stmt, (SQLCHAR*)"SELECT productcode, productname FROM products WHERE productname LIKE ? ORDER BY productcode", SQL_NTS);
+    if (!SQL_SUCCEEDED(ret)) {
+        odbc_extract_error("SQLPrepare", stmt, SQL_HANDLE_STMT);
+        SQLFreeHandle(SQL_HANDLE_STMT, stmt);
+        return;
+    }
+
+    ret = SQLBindParameter(stmt, 1, SQL_PARAM_INPUT, SQL_C_CHAR, SQL_VARCHAR, 70, 0, like_pattern, 0, NULL);
+    if (!SQL_SUCCEEDED(ret)) {
+        odbc_extract_error("SQLBindParameter", stmt, SQL_HANDLE_STMT);
+        SQLFreeHandle(SQL_HANDLE_STMT, stmt);
+        return;
+    }
+
+    ret = SQLExecute(stmt);
+    if (!SQL_SUCCEEDED(ret)) {
+        odbc_extract_error("SQLExecute", stmt, SQL_HANDLE_STMT);
+        SQLFreeHandle(SQL_HANDLE_STMT, stmt);
+        return;
+    }
+
+    SQLBindCol(stmt, 1, SQL_C_CHAR, productcode, sizeof(productcode), &ind_code);
+    SQLBindCol(stmt, 2, SQL_C_CHAR, productname, sizeof(productname), &ind_name);
+
+    while (SQLFetch(stmt) == SQL_SUCCESS) {
+        printf("%s %s\n", productcode, productname);
+    }
+
+    SQLFreeHandle(SQL_HANDLE_STMT, stmt);
+}
+void order_open(SQLHDBC dbc) {
+    SQLHSTMT stmt = NULL;
+    SQLRETURN ret;
+    SQLINTEGER ordernumber;
+    SQLLEN ind_ordernumber;
+
+    ret = SQLAllocHandle(SQL_HANDLE_STMT, dbc, &stmt);
+    if (!SQL_SUCCEEDED(ret)) {
+        odbc_extract_error("SQLAllocHandle", dbc, SQL_HANDLE_DBC);
+        return;
+    }
+
+    ret = SQLPrepare(stmt, (SQLCHAR*)"SELECT ordernumber FROM orders WHERE shippeddate IS NULL ORDER BY ordernumber", SQL_NTS);
+    if (!SQL_SUCCEEDED(ret)) {
+        odbc_extract_error("SQLPrepare", stmt, SQL_HANDLE_STMT);
+        SQLFreeHandle(SQL_HANDLE_STMT, stmt);
+        return;
+    }
+
+    ret = SQLExecute(stmt);
+    if (!SQL_SUCCEEDED(ret)) {
+        odbc_extract_error("SQLExecute", stmt, SQL_HANDLE_STMT);
+        SQLFreeHandle(SQL_HANDLE_STMT, stmt);
+        return;
+    }
+
+    SQLBindCol(stmt, 1, SQL_C_SLONG, &ordernumber, sizeof(SQLINTEGER), &ind_ordernumber);
+
+    while (SQLFetch(stmt) == SQL_SUCCESS) {
+        printf("%d\n", ordernumber);
+    }
+
+    SQLFreeHandle(SQL_HANDLE_STMT, stmt);
+}
+void order_range(SQLHDBC dbc) {
+    SQLHSTMT stmt = NULL;
+    SQLRETURN ret;
+    char input[100];
+    SQLCHAR date1[20], date2[20];
+    
+    SQLINTEGER ordernumber;
+    SQLCHAR orderdate[20];
+    SQLCHAR shippeddate[20];
+    SQLLEN ind_ordernumber, ind_orderdate, ind_shippeddate;
+
+    printf("Enter dates (YYYY-MM-DD - YYYY-MM-DD) > ");
+    if (fgets(input, sizeof(input), stdin)) {
+        /* sscanf lee el formato exacto y guarda cada fecha en su variable */
+        if (sscanf(input, "%19s - %19s", date1, date2) != 2) {
+            printf("Invalid date format. Use YYYY-MM-DD - YYYY-MM-DD\n");
+            return;
+        }
+    } else {
+        return;
+    }
+
+    ret = SQLAllocHandle(SQL_HANDLE_STMT, dbc, &stmt);
+    if (!SQL_SUCCEEDED(ret)) {
+        odbc_extract_error("SQLAllocHandle", dbc, SQL_HANDLE_DBC);
+        return;
+    }
+
+    ret = SQLPrepare(stmt, (SQLCHAR*)"SELECT ordernumber, orderdate, shippeddate FROM orders WHERE orderdate BETWEEN ? AND ? ORDER BY ordernumber", SQL_NTS);
+    if (!SQL_SUCCEEDED(ret)) {
+        odbc_extract_error("SQLPrepare", stmt, SQL_HANDLE_STMT);
+        SQLFreeHandle(SQL_HANDLE_STMT, stmt);
+        return;
+    }
+
+    SQLBindParameter(stmt, 1, SQL_PARAM_INPUT, SQL_C_CHAR, SQL_VARCHAR, 10, 0, date1, 0, NULL);
+    SQLBindParameter(stmt, 2, SQL_PARAM_INPUT, SQL_C_CHAR, SQL_VARCHAR, 10, 0, date2, 0, NULL);
+
+    ret = SQLExecute(stmt);
+    if (!SQL_SUCCEEDED(ret)) {
+        odbc_extract_error("SQLExecute", stmt, SQL_HANDLE_STMT);
+        SQLFreeHandle(SQL_HANDLE_STMT, stmt);
+        return;
+    }
+
+    SQLBindCol(stmt, 1, SQL_C_SLONG, &ordernumber, sizeof(SQLINTEGER), &ind_ordernumber);
+    SQLBindCol(stmt, 2, SQL_C_CHAR, orderdate, sizeof(orderdate), &ind_orderdate);
+    SQLBindCol(stmt, 3, SQL_C_CHAR, shippeddate, sizeof(shippeddate), &ind_shippeddate);
+
+    while (SQLFetch(stmt) == SQL_SUCCESS) {
+        if (ind_shippeddate == SQL_NULL_DATA) {
+            printf("%d %s NULL\n", ordernumber, orderdate);
+        } else {
+            printf("%d %s %s\n", ordernumber, orderdate, shippeddate);
+        }
+    }
+
+    SQLFreeHandle(SQL_HANDLE_STMT, stmt);
+}
+void order_detail(SQLHDBC dbc) {
+    SQLHSTMT stmt = NULL;
+    SQLRETURN ret;
+    SQLCHAR ordernumber_str[20];
+    
+    SQLCHAR orderdate[20];
+    SQLCHAR status[20];
+    double total_cost = 0;
+    SQLLEN ind_date, ind_status, ind_cost;
+
+    SQLCHAR productcode[50];
+    SQLINTEGER quantity;
+    double price;
+    SQLLEN ind_code, ind_qty, ind_price;
+
+    printf("Enter order number > ");
+    if (fgets((char*)ordernumber_str, sizeof(ordernumber_str), stdin)) {
+        size_t len = strlen((char*)ordernumber_str);
+        if (len > 0 && ordernumber_str[len-1] == '\n') {
+            ordernumber_str[len-1] = '\0';
+        }
+    } else {
+        return;
+    }
+
+    ret = SQLAllocHandle(SQL_HANDLE_STMT, dbc, &stmt);
+    if (!SQL_SUCCEEDED(ret)) {
+        odbc_extract_error("SQLAllocHandle", dbc, SQL_HANDLE_DBC);
+        return;
+    }
+
+    ret = SQLPrepare(stmt, (SQLCHAR*)
+        "SELECT o.orderdate, o.status, SUM(d.quantityordered * d.priceeach) "
+        "FROM orders o JOIN orderdetails d ON o.ordernumber = d.ordernumber "
+        "WHERE o.ordernumber = ? "
+        "GROUP BY o.orderdate, o.status", SQL_NTS);
+        
+    SQLBindParameter(stmt, 1, SQL_PARAM_INPUT, SQL_C_CHAR, SQL_INTEGER, 15, 0, ordernumber_str, 0, NULL);
+    SQLExecute(stmt);
+
+    SQLBindCol(stmt, 1, SQL_C_CHAR, orderdate, sizeof(orderdate), &ind_date);
+    SQLBindCol(stmt, 2, SQL_C_CHAR, status, sizeof(status), &ind_status);
+    SQLBindCol(stmt, 3, SQL_C_DOUBLE, &total_cost, 0, &ind_cost);
+
+    if (SQLFetch(stmt) == SQL_SUCCESS) {
+        printf("%s %s\n", orderdate, status);
+        printf("%.2f\n", total_cost);
+    } else {
+        printf("Order not found.\n");
+        SQLFreeHandle(SQL_HANDLE_STMT, stmt);
+        return;
+    }
+    
+    SQLCloseCursor(stmt);
+
+    ret = SQLPrepare(stmt, (SQLCHAR*)
+        "SELECT productcode, quantityordered, priceeach "
+        "FROM orderdetails "
+        "WHERE ordernumber = ? "
+        "ORDER BY orderlinenumber", SQL_NTS);
+        
+    SQLBindParameter(stmt, 1, SQL_PARAM_INPUT, SQL_C_CHAR, SQL_INTEGER, 15, 0, ordernumber_str, 0, NULL);
+    SQLExecute(stmt);
+
+    SQLBindCol(stmt, 1, SQL_C_CHAR, productcode, sizeof(productcode), &ind_code);
+    SQLBindCol(stmt, 2, SQL_C_SLONG, &quantity, sizeof(SQLINTEGER), &ind_qty);
+    SQLBindCol(stmt, 3, SQL_C_DOUBLE, &price, 0, &ind_price);
+
+    while (SQLFetch(stmt) == SQL_SUCCESS) {
+        printf("%s %d %.2f\n", productcode, quantity, price);
+    }
+
+    SQLFreeHandle(SQL_HANDLE_STMT, stmt);
+}
 void customer_find(SQLHDBC dbc) {}
 void customer_list_products(SQLHDBC dbc) {}
 void customer_balance(SQLHDBC dbc) {}
