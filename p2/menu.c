@@ -221,7 +221,7 @@ void product_find(SQLHDBC dbc) {
         return;
     }
 
-    snprintf((char*)like_pattern, sizeof(like_pattern), "%%%s%%", search_input);
+    sprintf((char*)like_pattern, "%%%s%%", search_input);
 
     ret = SQLAllocHandle(SQL_HANDLE_STMT, dbc, &stmt);
     if (!SQL_SUCCEEDED(ret)) {

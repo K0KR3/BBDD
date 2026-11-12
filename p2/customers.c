@@ -183,3 +183,4 @@ void customer_balance(SQLHDBC dbc) {
     balance = pagado - comprado;
     printf("Balance = %.2f\n", balance);
 }
+
