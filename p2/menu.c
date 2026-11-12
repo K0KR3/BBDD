@@ -13,9 +13,6 @@ void order_open(SQLHDBC dbc);
 void order_range(SQLHDBC dbc);
 void order_detail(SQLHDBC dbc);
 
-void customer_list_products(SQLHDBC dbc);
-void customer_balance(SQLHDBC dbc);
-
 int ShowMainMenu(void) {
     int nSelected = 0;
     char buf[16];
