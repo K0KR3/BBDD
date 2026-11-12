@@ -1,91 +1,129 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sql.h>
 #include <sqlext.h>
-
 #include "products.h"
 #include "odbc.h"
 
-static int ShowProductsSubMenu();
-static void ProductStock();
-static void ProductFind();
+#define STR_LEN 128
 
-/**
- * @brief Shows and processes the rhyme menu.
- *
- * This function implements a loop that prints the rhyme
- * menu, analyze the user selection and prints
- * the selected rhyme
- * @return void
- * @author rmarabini
- */
-void ShowProductsMenu() {
-    int nChoice = 0;
-    do {
-        nChoice = ShowProductsSubMenu();
-        switch (nChoice) {
 
-            case 1: {
-                ProductStock();
-            }
-                break;
+void product_stock(SQLHDBC dbc) {
+    SQLHSTMT stmt = NULL;
+    SQLRETURN ret;
+    SQLCHAR productcode[16];
+    SQLINTEGER quantityinstock;
+    SQLLEN indicator;
 
-            case 2: {
-                ProductFind();
-            }
-                break;
+    printf("Enter productcode > ");
+    (void) fflush(stdout);
 
-            case 3:  
+    if (scanf("%15s", (char *)productcode) == EOF) {
+        return;
+    }
+    while (getchar() != '\n');
 
-                break;
-            default:
-            break;
-        }
-    } while (nChoice != 3);
+    ret = SQLAllocHandle(SQL_HANDLE_STMT, dbc, &stmt);
+    if (!SQL_SUCCEEDED(ret)) {
+        odbc_extract_error("SQLAllocHandle", dbc, SQL_HANDLE_DBC);
+        return;
+    }
 
+    ret = SQLPrepare(stmt, (SQLCHAR *)"SELECT quantityinstock FROM products WHERE productcode = ?", SQL_NTS);
+    if (!SQL_SUCCEEDED(ret)) {
+        odbc_extract_error("SQLPrepare", stmt, SQL_HANDLE_STMT);
+        (void) SQLFreeHandle(SQL_HANDLE_STMT, stmt);
+        return;
+    }
+
+    ret = SQLBindParameter(stmt, 1, SQL_PARAM_INPUT, SQL_C_CHAR, SQL_VARCHAR, 15, 0, productcode, 0, NULL);
+    if (!SQL_SUCCEEDED(ret)) {
+        odbc_extract_error("SQLBindParameter", stmt, SQL_HANDLE_STMT);
+        (void) SQLFreeHandle(SQL_HANDLE_STMT, stmt);
+        return;
+    }
+
+    ret = SQLExecute(stmt);
+    if (!SQL_SUCCEEDED(ret)) {
+        odbc_extract_error("SQLExecute", stmt, SQL_HANDLE_STMT);
+        (void) SQLFreeHandle(SQL_HANDLE_STMT, stmt);
+        return;
+    }
+
+    ret = SQLBindCol(stmt, 1, SQL_C_SLONG, &quantityinstock, sizeof(SQLINTEGER), &indicator);
+    if (!SQL_SUCCEEDED(ret)) {
+        odbc_extract_error("SQLBindCol", stmt, SQL_HANDLE_STMT);
+        (void) SQLFreeHandle(SQL_HANDLE_STMT, stmt);
+        return;
+    }
+
+    ret = SQLFetch(stmt);
+    if (SQL_SUCCEEDED(ret)) {
+        printf("%d\n", (int)quantityinstock);
+    } else if (ret == SQL_NO_DATA) {
+        printf("Product not found.\n");
+    } else {
+        odbc_extract_error("SQLFetch", stmt, SQL_HANDLE_STMT);
+    }
+
+    (void) SQLCloseCursor(stmt);
+    (void) SQLFreeHandle(SQL_HANDLE_STMT, stmt);
 }
 
+void product_find(SQLHDBC dbc) {
+    SQLHSTMT stmt = NULL;
+    SQLRETURN ret;
+    SQLCHAR search_input[64];
+    SQLCHAR like_pattern[70];
+    SQLCHAR productcode[50];
+    SQLCHAR productname[100];
+    SQLLEN ind_code, ind_name;
 
-/**
- * @brief prints rhyme menu and allows to select an option.
- *
- * @return selected option
- * @author rmarabini
- */
+    printf("Enter productname > ");
+    (void) fflush(stdout);
 
- int ShowRhymeSubMenu() {
-    int nSelected = 0;
-    char buf[16];
+    if (scanf(" %63[^\n]", (char *)search_input) == EOF) {
+        return;
+    }
+    while (getchar() != '\n');
 
-    do {
+    (void) sprintf((char *)like_pattern, "%%%s%%", (char *)search_input);
 
-        printf(" 1. Stock\n"
-               " 2. Find\n"
-               " 3. Back\n\n");
+    ret = SQLAllocHandle(SQL_HANDLE_STMT, dbc, &stmt);
+    if (!SQL_SUCCEEDED(ret)) {
+        odbc_extract_error("SQLAllocHandle", dbc, SQL_HANDLE_DBC);
+        return;
+    }
 
-        printf("Enter a number that corresponds to your choice > ");
-        if (!fgets(buf, 16, stdin))
-            /* reading input failed, give up: */
-            nSelected =0;
-        else
-            /* have some input, convert it to integer: */
-            nSelected = atoi(buf);
-        printf("\n");
+    ret = SQLPrepare(stmt, (SQLCHAR *)"SELECT productcode, productname FROM products WHERE productname LIKE ? ORDER BY productcode", SQL_NTS);
+    if (!SQL_SUCCEEDED(ret)) {
+        odbc_extract_error("SQLPrepare", stmt, SQL_HANDLE_STMT);
+        (void) SQLFreeHandle(SQL_HANDLE_STMT, stmt);
+        return;
+    }
 
+    ret = SQLBindParameter(stmt, 1, SQL_PARAM_INPUT, SQL_C_CHAR, SQL_VARCHAR, 70, 0, like_pattern, 0, NULL);
+    if (!SQL_SUCCEEDED(ret)) {
+        odbc_extract_error("SQLBindParameter", stmt, SQL_HANDLE_STMT);
+        (void) SQLFreeHandle(SQL_HANDLE_STMT, stmt);
+        return;
+    }
 
-        if ((nSelected < 1) || (nSelected > 3)) {
-            printf("You have entered an invalid choice. Please try again\n\n\n");
-        }
-    } while ((nSelected < 1) || (nSelected > 3));
+    ret = SQLExecute(stmt);
+    if (!SQL_SUCCEEDED(ret)) {
+        odbc_extract_error("SQLExecute", stmt, SQL_HANDLE_STMT);
+        (void) SQLFreeHandle(SQL_HANDLE_STMT, stmt);
+        return;
+    }
 
-    return nSelected;
+    (void) SQLBindCol(stmt, 1, SQL_C_CHAR, productcode, sizeof(productcode), &ind_code);
+    (void) SQLBindCol(stmt, 2, SQL_C_CHAR, productname, sizeof(productname), &ind_name);
+
+    while (SQL_SUCCEEDED(SQLFetch(stmt))) {
+        printf("%s %s\n", (char *)productcode, (char *)productname);
+    }
+
+    (void) SQLCloseCursor(stmt);
+    (void) SQLFreeHandle(SQL_HANDLE_STMT, stmt);
 }
-
-static void ProductStock() {
-    printf("Stock.\n");
-}
-
-static void ProductFind() {
-    printf("Find.\n");
-}
-
