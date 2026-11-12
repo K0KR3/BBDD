@@ -4,6 +4,7 @@
 #include <string.h>
 #include <sqlext.h>
 #include "odbc.h"
+#include "customers.h"
 
 void product_stock(SQLHDBC dbc);
 void product_find(SQLHDBC dbc);
@@ -12,7 +13,6 @@ void order_open(SQLHDBC dbc);
 void order_range(SQLHDBC dbc);
 void order_detail(SQLHDBC dbc);
 
-void customer_find(SQLHDBC dbc);
 void customer_list_products(SQLHDBC dbc);
 void customer_balance(SQLHDBC dbc);
 
@@ -309,7 +309,6 @@ void order_range(SQLHDBC dbc) {
 
     printf("Enter dates (YYYY-MM-DD - YYYY-MM-DD) > ");
     if (fgets(input, sizeof(input), stdin)) {
-        /* sscanf lee el formato exacto y guarda cada fecha en su variable */
         if (sscanf(input, "%19s - %19s", date1, date2) != 2) {
             printf("Invalid date format. Use YYYY-MM-DD - YYYY-MM-DD\n");
             return;
@@ -429,9 +428,6 @@ void order_detail(SQLHDBC dbc) {
 
     SQLFreeHandle(SQL_HANDLE_STMT, stmt);
 }
-void customer_find(SQLHDBC dbc) {}
-void customer_list_products(SQLHDBC dbc) {}
-void customer_balance(SQLHDBC dbc) {}
 
 int main(void) {
     SQLHENV env;
